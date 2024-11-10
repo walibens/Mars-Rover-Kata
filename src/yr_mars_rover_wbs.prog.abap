@@ -7,12 +7,11 @@ CLASS lcl_vector DEFINITION FINAL.
       delta_x TYPE i READ-ONLY,
       delta_y TYPE i READ-ONLY.
 
-    METHODS constructor
+    METHODS: constructor
       IMPORTING delta_x TYPE i
-                delta_y TYPE i.
-    METHODS reverse
-      RETURNING VALUE(result) TYPE REF TO lcl_vector.
-
+                delta_y TYPE i,
+      reverse
+        RETURNING VALUE(result) TYPE REF TO lcl_vector.
 ENDCLASS.
 
 CLASS lcl_vector IMPLEMENTATION.
@@ -79,7 +78,9 @@ CLASS lcl_rover DEFINITION FINAL.
       move_forward,
       retrieve_direction
         RETURNING VALUE(result) TYPE lif_direction=>cardinal,
-      move_backward.
+      move_backward,
+      rotate_right,
+      rotate_left.
 
   PRIVATE SECTION.
     TYPES :
@@ -92,8 +93,7 @@ CLASS lcl_rover DEFINITION FINAL.
       position  TYPE REF TO lcl_position,
       direction TYPE lif_direction=>cardinal.
 
-    METHODS:
-      vector_rule
+    METHODS: vector_rule
         IMPORTING direction     TYPE lif_direction=>cardinal
         RETURNING VALUE(result) TYPE REF TO lcl_vector,
       land_in
@@ -147,6 +147,41 @@ CLASS lcl_rover IMPLEMENTATION.
   METHOD rotate_to.
     me->direction = direction.
   ENDMETHOD.
+
+  METHOD rotate_right.
+    TYPES :
+      BEGIN OF ty_target_cardinal,
+        source_cardinal TYPE lif_direction=>cardinal,
+        target_cardinal TYPE lif_direction=>cardinal,
+      END OF ty_target_cardinal,
+      tty_target_cardinal TYPE TABLE OF ty_target_cardinal WITH EMPTY KEY.
+
+    DATA(right_cardinal) = VALUE tty_target_cardinal(
+                            ( source_cardinal = lif_direction=>north target_cardinal = lif_direction=>east )
+                            ( source_cardinal = lif_direction=>east  target_cardinal = lif_direction=>south )
+                            ( source_cardinal = lif_direction=>south target_cardinal = lif_direction=>west )
+                            ( source_cardinal = lif_direction=>west  target_cardinal = lif_direction=>north ) ).
+
+    direction = right_cardinal[ source_cardinal = direction ]-target_cardinal.
+  ENDMETHOD.
+
+  METHOD rotate_left.
+    TYPES :
+      BEGIN OF ty_target_cardinal,
+        source_cardinal TYPE lif_direction=>cardinal,
+        target_cardinal TYPE lif_direction=>cardinal,
+      END OF ty_target_cardinal,
+      tty_target_cardinal TYPE TABLE OF ty_target_cardinal WITH EMPTY KEY.
+
+    DATA(left_cardinal) = VALUE tty_target_cardinal(
+                            ( source_cardinal = lif_direction=>north target_cardinal = lif_direction=>west )
+                            ( source_cardinal = lif_direction=>west  target_cardinal = lif_direction=>south )
+                            ( source_cardinal = lif_direction=>south target_cardinal = lif_direction=>east )
+                            ( source_cardinal = lif_direction=>east  target_cardinal = lif_direction=>north ) ).
+
+    direction = left_cardinal[ source_cardinal = direction ]-target_cardinal.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ltc_rover DEFINITION FINAL FOR TESTING
@@ -161,7 +196,10 @@ CLASS ltc_rover DEFINITION FINAL FOR TESTING
       rover_move_forward_to_west FOR TESTING,
       rover_move_forward_to_south FOR TESTING,
       rover_move_forward_to_east FOR TESTING,
-      rover_move_backward_from_east FOR TESTING.
+      rover_move_backward_from_east FOR TESTING,
+      face_west_turn_right_to_north FOR TESTING,
+      face_north_turn_right_to_east FOR TESTING,
+    face_west_turn_left_to_south FOR TESTING RAISING cx_static_check.
 ENDCLASS.
 
 CLASS ltc_rover IMPLEMENTATION.
@@ -224,5 +262,35 @@ CLASS ltc_rover IMPLEMENTATION.
     cut->move_backward( ).
     cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 17 y = 25 )
                                         act = cut->retrieve_position( ) ).
+  ENDMETHOD.
+
+  METHOD face_west_turn_right_to_north.
+    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 18 y = 25 )
+                               direction = lif_direction=>west ).
+
+    cut->rotate_right( ).
+    cl_abap_unit_assert=>assert_equals( exp = lif_direction=>north
+                                        act = cut->retrieve_direction( ) ).
+
+  ENDMETHOD.
+
+  METHOD face_north_turn_right_to_east.
+    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 18 y = 25 )
+                               direction = lif_direction=>north ).
+
+    cut->rotate_right( ).
+    cl_abap_unit_assert=>assert_equals( exp = lif_direction=>east
+                                        act = cut->retrieve_direction( ) ).
+
+  ENDMETHOD.
+
+  METHOD face_west_turn_left_to_south.
+    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 18 y = 25 )
+                               direction = lif_direction=>west ).
+
+    cut->rotate_left( ).
+    cl_abap_unit_assert=>assert_equals( exp = lif_direction=>south
+                                        act = cut->retrieve_direction( ) ).
+
   ENDMETHOD.
 ENDCLASS.
