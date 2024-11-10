@@ -87,6 +87,8 @@ CLASS lcl_rover IMPLEMENTATION.
         position->translate( delta_x = 0 delta_y = 1 ).
       WHEN lif_direction=>west.
         position->translate( delta_x = -1 delta_y = 0 ).
+      WHEN lif_direction=>south.
+        position->translate( delta_x = 0 delta_y = -1 ).
     ENDCASE.
   ENDMETHOD.
 
@@ -104,10 +106,12 @@ CLASS ltc_rover DEFINITION FINAL FOR TESTING
   RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
-    METHODS: initial_position_of_rover FOR TESTING,
+    METHODS:
+      initial_position_of_rover FOR TESTING,
       rover_move_forward_to_north FOR TESTING,
       direction_of_rover_is_east FOR TESTING,
-      rover_move_forward_to_west FOR TESTING.
+      rover_move_forward_to_west FOR TESTING,
+      rover_move_forward_to_south FOR TESTING.
 ENDCLASS.
 
 CLASS ltc_rover IMPLEMENTATION.
@@ -144,4 +148,15 @@ CLASS ltc_rover IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 0 y = 2 )
                                         act = cut->retrieve_position( ) ).
   ENDMETHOD.
+
+  METHOD rover_move_forward_to_south.
+    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 7 y = 9 )
+                               direction = lif_direction=>south ).
+
+    cut->move_forward( ).
+    cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 7 y = 8 )
+                                        act = cut->retrieve_position( ) ).
+
+  ENDMETHOD.
+
 ENDCLASS.
