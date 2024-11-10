@@ -25,13 +25,21 @@ class lcl_position definition final.
     methods :
       constructor
         importing x type i
-                  y type i.
+                  y type i,
+      translate
+        importing delta_x type i
+                  delta_y type i.
 endclass.
 
 class lcl_position implementation.
   method constructor.
     coordinates-x = x.
     coordinates-y = y.
+  endmethod.
+
+  method translate.
+    coordinates-x += delta_x.
+    coordinates-y += delta_y.
   endmethod.
 endclass.
 
@@ -74,8 +82,7 @@ class lcl_rover implementation.
   endmethod.
 
   method move_forward.
-    position = new lcl_position( x = position->coordinates-x
-                                 y = position->coordinates-y + 1 ).
+    position->translate( delta_x = 0 delta_y = 1 ).
   endmethod.
 
   method retrieve_direction.
