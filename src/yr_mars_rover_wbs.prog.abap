@@ -1,127 +1,127 @@
 "!https://kata-log.rocks/mars-rover-kata
-REPORT yr_mars_rover_wbs.
+report yr_mars_rover_wbs.
 
-INTERFACE lif_direction.
-  TYPES :
-    BEGIN OF ENUM cardinal,
+interface lif_direction.
+  types :
+    begin of enum cardinal,
       north,
       south,
       east,
       west,
-    END OF ENUM cardinal.
-ENDINTERFACE.
+    end of enum cardinal.
+endinterface.
 
-CLASS lcl_position DEFINITION FINAL.
-  PUBLIC SECTION.
-    TYPES :
-      BEGIN OF ty_coordinates,
-        x TYPE i,
-        y TYPE i,
-      END OF ty_coordinates.
+class lcl_position definition final.
+  public section.
+    types :
+      begin of ty_coordinates,
+        x type i,
+        y type i,
+      end of ty_coordinates.
 
-    DATA :
-      coordinates TYPE ty_coordinates READ-ONLY.
+    data :
+      coordinates type ty_coordinates read-only.
 
-    METHODS :
+    methods :
       constructor
-        IMPORTING x TYPE i
-                  y TYPE i.
-ENDCLASS.
+        importing x type i
+                  y type i.
+endclass.
 
-CLASS lcl_position IMPLEMENTATION.
-  METHOD constructor.
+class lcl_position implementation.
+  method constructor.
     coordinates-x = x.
     coordinates-y = y.
-  ENDMETHOD.
-ENDCLASS.
+  endmethod.
+endclass.
 
-CLASS lcl_rover DEFINITION FINAL.
-  PUBLIC SECTION.
-    METHODS :
+class lcl_rover definition final.
+  public section.
+    methods :
       constructor
-        IMPORTING position  TYPE REF TO lcl_position
-                  direction TYPE lif_direction=>cardinal,
+        importing position  type ref to lcl_position
+                  direction type lif_direction=>cardinal,
       retrieve_position
-        RETURNING VALUE(result) TYPE lcl_position=>ty_coordinates,
+        returning value(result) type lcl_position=>ty_coordinates,
       move_forward,
       retrieve_direction
-        RETURNING VALUE(result) TYPE lif_direction=>cardinal.
+        returning value(result) type lif_direction=>cardinal.
 
-  PRIVATE SECTION.
-    DATA :
-      position  TYPE REF TO lcl_position,
-      direction TYPE lif_direction=>cardinal.
-    METHODS
+  private section.
+    data :
+      position  type ref to lcl_position,
+      direction type lif_direction=>cardinal.
+    methods
       land_in
-        IMPORTING position TYPE REF TO lcl_position.
-    METHODS rotate_to
-      IMPORTING
-        direction TYPE lif_direction=>cardinal.
-ENDCLASS.
+        importing position type ref to lcl_position.
+    methods rotate_to
+      importing
+        direction type lif_direction=>cardinal.
+endclass.
 
-CLASS lcl_rover IMPLEMENTATION.
-  METHOD constructor.
+class lcl_rover implementation.
+  method constructor.
     land_in( position ).
     rotate_to( direction ).
-  ENDMETHOD.
+  endmethod.
 
-  METHOD land_in.
+  method land_in.
     me->position = position.
-  ENDMETHOD.
+  endmethod.
 
-  METHOD retrieve_position.
+  method retrieve_position.
     result = position->coordinates.
-  ENDMETHOD.
+  endmethod.
 
-  METHOD move_forward.
+  method move_forward.
+    position = new lcl_position( x = position->coordinates-x
+                                 y = position->coordinates-y + 1 ).
+  endmethod.
 
-  ENDMETHOD.
-
-  METHOD retrieve_direction.
+  method retrieve_direction.
     result = direction.
-  ENDMETHOD.
+  endmethod.
 
-  METHOD rotate_to.
+  method rotate_to.
     me->direction = direction.
-  ENDMETHOD.
-ENDCLASS.
+  endmethod.
+endclass.
 
-CLASS ltc_rover DEFINITION FINAL FOR TESTING
-  DURATION SHORT
-  RISK LEVEL HARMLESS.
+class ltc_rover definition final for testing
+  duration short
+  risk level harmless.
 
-  PRIVATE SECTION.
-    METHODS:
-      initial_position_of_rover FOR TESTING RAISING cx_static_check,
-      rover_move_forward FOR TESTING,
-      direction_of_rover_is_east FOR TESTING RAISING cx_static_check.
+  private section.
+    methods:
+      initial_position_of_rover for testing,
+      rover_move_forward for testing,
+      direction_of_rover_is_east for testing.
 
-ENDCLASS.
+endclass.
 
-CLASS ltc_rover IMPLEMENTATION.
-  METHOD initial_position_of_rover.
-    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 1 y = 2 )
+class ltc_rover implementation.
+  method initial_position_of_rover.
+    data(cut) = new lcl_rover( position  = new lcl_position( x = 1 y = 2 )
                                direction = lif_direction=>north ).
 
-    cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 1 y = 2 )
+    cl_abap_unit_assert=>assert_equals( exp = value lcl_position=>ty_coordinates( x = 1 y = 2 )
                                         act = cut->retrieve_position( ) ).
-  ENDMETHOD.
+  endmethod.
 
-  METHOD direction_of_rover_is_east.
-    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 1 y = 2 )
+  method direction_of_rover_is_east.
+    data(cut) = new lcl_rover( position  = new lcl_position( x = 1 y = 2 )
                                direction = lif_direction=>east ).
 
     cl_abap_unit_assert=>assert_equals( exp = lif_direction=>east
                                         act = cut->retrieve_direction( ) ).
-  ENDMETHOD.
+  endmethod.
 
-  METHOD rover_move_forward.
-    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 1 y = 2 )
+  method rover_move_forward.
+    data(cut) = new lcl_rover( position  = new lcl_position( x = 1 y = 2 )
                                direction = lif_direction=>north ).
 
     cut->move_forward( ).
-    cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 1 y = 3 )
+    cl_abap_unit_assert=>assert_equals( exp = value lcl_position=>ty_coordinates( x = 1 y = 3 )
                                         act = cut->retrieve_position( ) ).
-
-  ENDMETHOD.
-ENDCLASS.
+  endmethod.
+endclass.
