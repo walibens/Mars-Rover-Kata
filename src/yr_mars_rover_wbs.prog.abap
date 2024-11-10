@@ -2,7 +2,6 @@
 REPORT yr_mars_rover_wbs.
 
 CLASS lcl_vector DEFINITION FINAL.
-
   PUBLIC SECTION.
     DATA :
       delta_x TYPE i READ-ONLY,
@@ -11,23 +10,22 @@ CLASS lcl_vector DEFINITION FINAL.
     METHODS constructor
       IMPORTING delta_x TYPE i
                 delta_y TYPE i.
-
-  PROTECTED SECTION.
-
-  PRIVATE SECTION.
+    METHODS reverse
+      RETURNING VALUE(result) TYPE REF TO lcl_vector.
 
 ENDCLASS.
 
 CLASS lcl_vector IMPLEMENTATION.
-
   METHOD constructor.
     me->delta_x = delta_x.
     me->delta_y = delta_y.
   ENDMETHOD.
 
+  METHOD reverse.
+    me->delta_x *= -1.
+    me->delta_y *= -1.
+  ENDMETHOD.
 ENDCLASS.
-
-
 
 INTERFACE lif_direction.
   TYPES :
@@ -80,7 +78,8 @@ CLASS lcl_rover DEFINITION FINAL.
         RETURNING VALUE(result) TYPE lcl_position=>ty_coordinates,
       move_forward,
       retrieve_direction
-        RETURNING VALUE(result) TYPE lif_direction=>cardinal.
+        RETURNING VALUE(result) TYPE lif_direction=>cardinal,
+      move_backward.
 
   PRIVATE SECTION.
     TYPES :
@@ -89,19 +88,19 @@ CLASS lcl_rover DEFINITION FINAL.
         vector    TYPE REF TO lcl_vector,
       END OF ty_translation_rule.
 
-    METHODS vector
-      IMPORTING direction     TYPE lif_direction=>cardinal
-      RETURNING VALUE(result) TYPE REF TO lcl_vector.
-
     DATA :
       position  TYPE REF TO lcl_position,
       direction TYPE lif_direction=>cardinal.
-    METHODS
+
+    METHODS:
+      vector_rule
+        IMPORTING direction     TYPE lif_direction=>cardinal
+        RETURNING VALUE(result) TYPE REF TO lcl_vector,
       land_in
-        IMPORTING position TYPE REF TO lcl_position.
-    METHODS rotate_to
-      IMPORTING
-        direction TYPE lif_direction=>cardinal.
+        IMPORTING position TYPE REF TO lcl_position,
+      rotate_to
+        IMPORTING
+          direction TYPE lif_direction=>cardinal.
 ENDCLASS.
 
 CLASS lcl_rover IMPLEMENTATION.
@@ -119,11 +118,17 @@ CLASS lcl_rover IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD move_forward.
-    DATA(vector_for_direction) = vector( direction ).
+    DATA(vector_for_direction) = vector_rule( direction ).
     position->translate( vector_for_direction ).
   ENDMETHOD.
 
-  METHOD vector.
+  METHOD move_backward.
+    DATA(vector_from_direction) = vector_rule( direction ).
+    vector_from_direction->reverse( ).
+    position->translate( vector_from_direction ).
+  ENDMETHOD.
+
+  METHOD vector_rule.
     DATA translation_rule TYPE TABLE OF ty_translation_rule WITH EMPTY KEY.
 
     translation_rule = VALUE #(
@@ -155,7 +160,8 @@ CLASS ltc_rover DEFINITION FINAL FOR TESTING
       direction_of_rover_is_east FOR TESTING,
       rover_move_forward_to_west FOR TESTING,
       rover_move_forward_to_south FOR TESTING,
-      rover_move_forward_to_east FOR TESTING.
+      rover_move_forward_to_east FOR TESTING,
+      rover_move_backward_from_east FOR TESTING.
 ENDCLASS.
 
 CLASS ltc_rover IMPLEMENTATION.
@@ -208,6 +214,15 @@ CLASS ltc_rover IMPLEMENTATION.
 
     cut->move_forward( ).
     cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 19 y = 25 )
+                                        act = cut->retrieve_position( ) ).
+  ENDMETHOD.
+
+  METHOD rover_move_backward_from_east.
+    DATA(cut) = NEW lcl_rover( position  = NEW lcl_position( x = 18 y = 25 )
+                               direction = lif_direction=>east ).
+
+    cut->move_backward( ).
+    cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 17 y = 25 )
                                         act = cut->retrieve_position( ) ).
   ENDMETHOD.
 ENDCLASS.
