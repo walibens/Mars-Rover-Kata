@@ -1,6 +1,8 @@
 "!https://kata-log.rocks/mars-rover-kata
 REPORT yr_mars_rover_wbs.
 
+
+
 CLASS lcl_vector DEFINITION FINAL.
   PUBLIC SECTION.
     DATA :
@@ -67,6 +69,23 @@ CLASS lcl_position IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS lcx_obstacle_detected DEFINITION INHERITING FROM cx_dynamic_check.
+  PUBLIC SECTION.
+    DATA obstacle_position TYPE REF TO lcl_position.
+    METHODS constructor
+      IMPORTING
+        obstacle_position TYPE REF TO lcl_position.
+ENDCLASS.
+
+CLASS lcx_obstacle_detected IMPLEMENTATION.
+
+  METHOD constructor.
+    super->constructor( textid = textid previous = previous ).
+    me->obstacle_position = obstacle_position.
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS lcl_rover DEFINITION FINAL.
   PUBLIC SECTION.
     TYPES :
@@ -77,10 +96,12 @@ CLASS lcl_rover DEFINITION FINAL.
                   direction TYPE lif_direction=>cardinal,
       retrieve_position
         RETURNING VALUE(result) TYPE lcl_position=>ty_coordinates,
-      move_forward,
+      move_forward
+        RAISING lcx_obstacle_detected,
+      move_backward
+        RAISING lcx_obstacle_detected,
       retrieve_direction
         RETURNING VALUE(result) TYPE lif_direction=>cardinal,
-      move_backward,
       rotate_right,
       rotate_left,
       initialize_obstacles
@@ -105,18 +126,13 @@ CLASS lcl_rover DEFINITION FINAL.
       land_in
         IMPORTING position TYPE REF TO lcl_position,
       rotate_to
-        IMPORTING
-          direction TYPE lif_direction=>cardinal,
+        IMPORTING direction TYPE lif_direction=>cardinal,
       is_target_clean
-        IMPORTING
-          next_position TYPE REF TO lcl_position
-        RETURNING
-          VALUE(result) TYPE abap_bool,
+        IMPORTING next_position TYPE REF TO lcl_position
+        RETURNING VALUE(result) TYPE abap_bool,
       simulate_target
-        IMPORTING
-          vector_for_direction TYPE REF TO lcl_vector
-        RETURNING
-          VALUE(result)        TYPE REF TO lcl_position.
+        IMPORTING vector_for_direction TYPE REF TO lcl_vector
+        RETURNING VALUE(result)        TYPE REF TO lcl_position.
 ENDCLASS.
 
 CLASS lcl_rover IMPLEMENTATION.
@@ -139,6 +155,8 @@ CLASS lcl_rover IMPLEMENTATION.
 
     IF is_target_clean( next_position ).
       position = next_position.
+    ELSE.
+      RAISE EXCEPTION NEW lcx_obstacle_detected( next_position ).
     ENDIF.
   ENDMETHOD.
 
@@ -149,6 +167,8 @@ CLASS lcl_rover IMPLEMENTATION.
     DATA(next_position) = simulate_target( vector_from_direction ).
     IF is_target_clean( next_position ).
       position = next_position.
+    ELSE.
+      RAISE EXCEPTION NEW lcx_obstacle_detected( next_position ).
     ENDIF.
   ENDMETHOD.
 
@@ -349,10 +369,12 @@ CLASS ltc_rover IMPLEMENTATION.
                                                      ( NEW lcl_position( x = 19 y = 51 ) )
                                                      ( NEW lcl_position( x = 0  y = 0 ) ) ).
     cut->initialize_obstacles( obstacles ).
-    cut->move_forward( ).
-
-    cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 1 y = 4 )
-                                        act = cut->retrieve_position( ) ).
+    TRY.
+        cut->move_forward( ).
+      CATCH lcx_obstacle_detected into data(exception).
+        cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 1 y = 4 )
+                                            act = cut->retrieve_position( ) ).
+    ENDTRY.
   ENDMETHOD.
 
   METHOD stop_if_move_b_with_obst.
@@ -364,9 +386,12 @@ CLASS ltc_rover IMPLEMENTATION.
                                                      ( NEW lcl_position( x = 19 y = 51 ) )
                                                      ( NEW lcl_position( x = 0  y = 0 ) ) ).
     cut->initialize_obstacles( obstacles ).
-    cut->move_backward( ).
 
-    cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 16 y = 55 )
-                                        act = cut->retrieve_position( ) ).
+    TRY.
+        cut->move_backward( ).
+      CATCH lcx_obstacle_detected into data(exception).
+        cl_abap_unit_assert=>assert_equals( exp = VALUE lcl_position=>ty_coordinates( x = 16 y = 55 )
+                                            act = cut->retrieve_position( ) ).
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
